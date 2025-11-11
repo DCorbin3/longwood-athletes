@@ -19,14 +19,21 @@
             background-color: #f3f4f6;
             min-height: 100vh;
         }
+        /* Modal specific styling */
+        .modal-content {
+            animation: slide-down 0.3s ease-out;
+        }
+        @keyframes slide-down {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
     <script>
-        // --- 1. ATHLETE DATA (Extracted from previous Markdown table) ---
-        // Note: The "Notes" field is included for potential use, though not displayed on the tile.
+        // --- 1. ATHLETE DATA (Extracted from previous Markdown table with new 'bio' field) ---
         const ATHLETE_DATA = [
-            { first: "Kyon", last: "Sarwari", sport: "Football", grad: 2027, notes: "Jr., RB, OLB" },
-            { first: "Kaden", last: "Reid", sport: "Football", grad: 2026, notes: "Sr., FS, WR" },
-            { first: "Makai", last: "Jacobs", sport: "Football", grad: 2027, notes: "Jr., QB, CB" },
+            { first: "Kyon", last: "Sarwari", sport: "Football", grad: 2027, notes: "Jr., RB, OLB", bio: "Kyon is a key running back known for his speed and leadership. He is focused on improving his agility and plans to study engineering after high school." },
+            { first: "Kaden", last: "Reid", sport: "Football", grad: 2026, notes: "Sr., FS, WR", bio: "Kaden is a versatile, multi-year varsity starter and team captain. Excels in both offense and defense and is highly valued for his game sense." },
+            { first: "Makai", last: "Jacobs", sport: "Football", grad: 2027, notes: "Jr., QB, CB", bio: "Makai serves as the backup quarterback and a reliable defensive back. Works hard in the off-season to increase throwing accuracy." },
             { first: "Travis", last: "Gibbs", sport: "Football", grad: 2027, notes: "Jr., WR" },
             { first: "Mark", last: "Davis", sport: "Football", grad: 2028, notes: "So., RB, CB" },
             { first: "Ambrose", last: "Isaac", sport: "Football", grad: 2026, notes: "Sr., WR, CB" },
@@ -100,7 +107,7 @@
             { first: "Brandon", last: "Miller", sport: "Soccer (Boys)", grad: 2026, notes: "" },
             { first: "Jacob", last: "Ganzer", sport: "Soccer (Boys)", grad: 2028, notes: "So. (2025 Roster)" },
             { first: "Julian", last: "Lange", sport: "Soccer (Boys)", grad: 2028, notes: "So. (2025 Roster)" },
-            { first: "Rylie", last: "Zinna", sport: "Soccer (Girls)", grad: 2028, notes: "So. (Class 10)" },
+            { first: "Rylie", last: "Zinna", sport: "Soccer (Girls)", grad: 2028, notes: "So. (Class 10)", bio: "Rylie is a dynamic midfielder focused on controlling the center of the field. She leads the team in assists and is actively involved in community service." },
             { first: "Breanna", last: "Williams", sport: "Soccer (Girls)", grad: 2029, notes: "Fr. (Class 9)" },
             { first: "Sarah", last: "Vrljicak", sport: "Soccer (Girls)", grad: 2026, notes: "Sr. (Class 12)" },
             { first: "Sara", last: "Smatkitboriharn", sport: "Soccer (Girls)", grad: 2027, notes: "Jr. (Class 11)" },
@@ -360,6 +367,31 @@
             return map[sport] || '👤';
         }
 
+        // Function to display the detail modal
+        function showDetails(athleteJson) {
+            // Convert the JSON string passed from the HTML back into an object
+            const athlete = JSON.parse(athleteJson);
+            
+            document.getElementById('modal-athlete-name').textContent = `${athlete.first} ${athlete.last}`;
+            document.getElementById('modal-sport').textContent = athlete.sport;
+            document.getElementById('modal-grad-year').textContent = athlete.grad;
+            document.getElementById('modal-notes').textContent = athlete.notes || 'N/A';
+            
+            // Check for the optional 'bio' field
+            const bioContent = athlete.bio 
+                ? athlete.bio 
+                : `No specific 'About Me' or detailed information has been added for ${athlete.first} yet. This section is ready for future expansion!`;
+            document.getElementById('modal-bio').textContent = bioContent;
+
+            document.getElementById('athlete-modal').style.display = 'flex';
+        }
+
+        // Function to hide the modal
+        function closeModal() {
+            document.getElementById('athlete-modal').style.display = 'none';
+        }
+
+
         function renderTiles(data) {
             const container = document.getElementById('athlete-grid');
             if (!container) return;
@@ -374,8 +406,14 @@
             data.forEach(athlete => {
                 const icon = getSportIcon(athlete.sport);
                 const tile = document.createElement('div');
-                // Updated class names for Green/Amber theme
-                tile.className = 'bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-[1.01] border-t-4 border-green-600';
+                
+                // Escape quotes in the athlete object for safe JSON passing to the onclick function
+                const athleteJsonString = JSON.stringify(athlete).replace(/"/g, "'");
+
+                // Add the onclick event to the tile
+                tile.className = 'bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-[1.01] border-t-4 border-green-600 cursor-pointer';
+                tile.setAttribute('onclick', `showDetails('${athleteJsonString}')`);
+                
                 tile.innerHTML = `
                     <div class="flex items-center space-x-4 mb-3">
                         <div class="text-4xl leading-none">${icon}</div>
@@ -448,10 +486,10 @@
 
         function updateSortIndicators() {
             document.querySelectorAll('.sort-btn').forEach(btn => {
-                btn.classList.remove('font-bold', 'text-green-600'); // Changed to green
+                btn.classList.remove('font-bold', 'text-green-600'); 
                 btn.innerHTML = btn.getAttribute('data-label'); 
                 if (btn.getAttribute('data-key') === currentSort.key) {
-                    btn.classList.add('font-bold', 'text-green-600'); // Changed to green
+                    btn.classList.add('font-bold', 'text-green-600'); 
                     const arrow = currentSort.direction === 'asc' ? ' ▲' : ' ▼';
                     btn.innerHTML += arrow;
                 }
@@ -479,6 +517,20 @@
             // Initial render
             updateSortIndicators();
             updateDisplay();
+
+            // Close modal on escape key press
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+
+             // Close modal when clicking outside the content (on the overlay)
+            document.getElementById('athlete-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'athlete-modal') {
+                    closeModal();
+                }
+            });
         };
 
     </script>
@@ -528,6 +580,46 @@
         </div>
 
     </div>
+
+    <!-- --- ATHLETE DETAIL MODAL (Pop-up Window) --- -->
+    <div id="athlete-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-start justify-center p-4 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="modal-content bg-white w-full max-w-2xl mt-12 p-6 sm:p-8 rounded-xl shadow-2xl border-t-8 border-green-600">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start border-b pb-4 mb-4">
+                <h2 id="modal-athlete-name" class="text-3xl font-extrabold text-green-800"></h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-800 transition duration-150 p-2 rounded-full hover:bg-gray-100" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Athlete Details -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="p-3 bg-amber-50 rounded-lg">
+                    <p class="text-xs font-semibold text-amber-700 uppercase">Sport</p>
+                    <p id="modal-sport" class="text-lg font-medium text-gray-800"></p>
+                </div>
+                <div class="p-3 bg-amber-50 rounded-lg">
+                    <p class="text-xs font-semibold text-amber-700 uppercase">Graduating Year</p>
+                    <p id="modal-grad-year" class="text-lg font-medium text-gray-800"></p>
+                </div>
+            </div>
+
+            <!-- About Me / Future Expansion Slot -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-green-700 mb-2">About Me / Personal Highlights</h3>
+                <p id="modal-bio" class="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-200"></p>
+            </div>
+
+            <!-- Notes / Coach Section (Hidden details) -->
+            <div class="text-sm text-gray-500 border-t pt-4">
+                <h3 class="font-semibold text-gray-600 mb-1">Additional Notes/Details</h3>
+                <p id="modal-notes" class="italic"></p>
+            </div>
+
+        </div>
+    </div>
+    <!-- --- END MODAL --- -->
 
 </body>
 </html>
